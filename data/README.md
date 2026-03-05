@@ -1,4 +1,4 @@
-Про датасет 111 222 
+Про датасет
 
 URL: https://data.gov.ua/dataset/scsu-information-about-received-property
 
