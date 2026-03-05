@@ -1,6 +1,7 @@
 from src import config
 from src import loader
-from src import research  # <--- Додаємо імпорт research
+from src import research  
+from src import quality
 
 
 def main():
@@ -12,6 +13,7 @@ def main():
     # Етап 1: Завантаження даних
     print("\n>>> [Step 1] Data Loading...")
     try:
+        # Перевіряємо, чи файл вже існує, щоб не качати щоразу (опціонально)
         if not config.RAW_DATA_FILE_PATH.exists():
             loader.download_data(config.DATASET_URL, config.RAW_DATA_FILE_PATH)
         else:
@@ -19,7 +21,14 @@ def main():
     except Exception as e:
         print(f"Critical error at Data Loading stage: {e}")
         return
-
+      
+    # Етап 2: Аналіз якості даних
+    print("\n>>> [Step 2] Data Quality Analysis...")
+    try:
+        quality.analyze_quality(config.RAW_DATA_FILE_PATH)
+    except Exception as e:
+        print(f"Error at Data Quality Analysis stage: {e}")
+        
     # Етап 3: Дослідження даних (Research)
     print("\n>>> [Step 3] Data Research...")
     try:
