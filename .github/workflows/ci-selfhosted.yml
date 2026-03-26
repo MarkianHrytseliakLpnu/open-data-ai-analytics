@@ -1,39 +1,70 @@
 name: CI (Self-Hosted)
 
 on:
-  workflow_dispatch: # Запуск тільки вручну для тестування
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Which module to run (or 'all')"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - loader
+          - quality
+          - research
+          - visualization
+
+env:
+  PYTHONPATH: .
 
 jobs:
   local-test:
-    runs-on: self-hosted # <--- замість ubuntu-latest
+    runs-on: self-hosted
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [loader, quality, research, visualization]
+
+    # ПЕРЕНОСИМО ЛОГІКУ В ЗМІННУ (тут matrix доступна)
+    env:
+      SHOULD_RUN: ${{ github.event.inputs.module == 'all' || github.event.inputs.module == matrix.module }}
     
     steps:
-      # ВИДАЛЯЄМО uses: actions/checkout@v4
-      # Замість нього використовуємо звичайні команди Git, 
-      # які ніколи не блокують тимчасові папки
+      # Додаємо перевірку SHOULD_RUN до кожного кроку
       - name: Manual Checkout (Bulletproof for Windows)
+        if: ${{ env.SHOULD_RUN == 'true' }}
         run: |
-          # Перевіряємо, чи репозиторій вже існує в папці _work
           if (-not (Test-Path .git)) {
             git clone https://github.com/MarkianHrytseliakLpnu/open-data-ai-analytics.git .
           }
-          # Оновлюємо код до найсвіжішої версії
           git fetch origin main
           git reset --hard origin/main
           git clean -fd
           
-      # Примітка: actions/setup-python часто "вередує" на локальних машинах,
-      # тому ми просто використовуємо ваш встановлений локальний Python!
       - name: Check Python version
+        if: ${{ env.SHOULD_RUN == 'true' }}
         run: python --version
 
       - name: Install dependencies
+        if: ${{ env.SHOULD_RUN == 'true' }}
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Pytest (Quality Module)
+      - name: Run Pytest (${{ matrix.module }})
+        if: ${{ env.SHOULD_RUN == 'true' }}
         run: |
-          # В PowerShell для створення папок краще використовувати New-Item
-          New-Item -ItemType Directory -Force -Path artifacts\quality
-          python -m pytest tests/test_quality.py -v > artifacts\quality\test_run.log 2>&1
+          New-Item -ItemType Directory -Force -Path "artifacts\${{ matrix.module }}"
+          
+          echo "Running tests for ${{ matrix.module }}..."
+          python -m pytest tests/test_${{ matrix.module }}.py -v > "artifacts\${{ matrix.module }}\test_run.log" 2>&1
+
+      - name: Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        # Завантажуємо завжди (навіть при помилці), АЛЕ тільки якщо цей модуль взагалі мав запускатися
+        if: ${{ always() && env.SHOULD_RUN == 'true' }}
+        with:
+          name: logs-selfhosted-${{ matrix.module }}
+          path: artifacts\${{ matrix.module }}
