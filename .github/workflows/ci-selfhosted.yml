@@ -8,11 +8,19 @@ jobs:
     runs-on: self-hosted # <--- замість ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          clean: false # <--- Додаємо цей рядок для Windows Runner'а
-          persist-credentials: false # <--- ДОДАЙТЕ ЦЕЙ РЯДОК
+      # ВИДАЛЯЄМО uses: actions/checkout@v4
+      # Замість нього використовуємо звичайні команди Git, 
+      # які ніколи не блокують тимчасові папки
+      - name: Manual Checkout (Bulletproof for Windows)
+        run: |
+          # Перевіряємо, чи репозиторій вже існує в папці _work
+          if (-not (Test-Path .git)) {
+            git clone https://github.com/MarkianHrytseliakLpnu/open-data-ai-analytics.git .
+          }
+          # Оновлюємо код до найсвіжішої версії
+          git fetch origin main
+          git reset --hard origin/main
+          git clean -fd
           
       # Примітка: actions/setup-python часто "вередує" на локальних машинах,
       # тому ми просто використовуємо ваш встановлений локальний Python!
