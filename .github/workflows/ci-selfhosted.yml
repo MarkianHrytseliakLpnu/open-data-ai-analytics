@@ -1,0 +1,28 @@
+name: CI (Self-Hosted)
+
+on:
+  workflow_dispatch: # Запуск тільки вручну для тестування
+
+jobs:
+  local-test:
+    runs-on: self-hosted # <--- замість ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Примітка: actions/setup-python часто "вередує" на локальних машинах,
+      # тому ми просто використовуємо ваш встановлений локальний Python!
+      - name: Check Python version
+        run: python --version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Pytest (Quality Module)
+        run: |
+          # В PowerShell для створення папок краще використовувати New-Item
+          New-Item -ItemType Directory -Force -Path artifacts\quality
+          python -m pytest tests/test_quality.py -v > artifacts\quality\test_run.log 2>&1
