@@ -10,7 +10,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+        with:
+          clean: false # <--- Додаємо цей рядок для Windows Runner'а
+          
       # Примітка: actions/setup-python часто "вередує" на локальних машинах,
       # тому ми просто використовуємо ваш встановлений локальний Python!
       - name: Check Python version
