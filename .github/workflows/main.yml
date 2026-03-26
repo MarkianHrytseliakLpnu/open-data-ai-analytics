@@ -1,0 +1,160 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Which module to run (or 'all')"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - loader
+          - quality
+          - research
+          - visualization
+
+jobs:
+  # ==========================================
+  # 1. Визначення змінених файлів
+  # ==========================================
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      loader: ${{ steps.filter.outputs.loader }}
+      quality: ${{ steps.filter.outputs.quality }}
+      research: ${{ steps.filter.outputs.research }}
+      visualization: ${{ steps.filter.outputs.visualization }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # dorny/paths-filter визначає, чи були зміни у вказаних папках/файлах
+      - name: Check path changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            loader:
+              - 'src/loader.py'
+              - 'tests/test_loader.py'
+            quality:
+              - 'src/quality.py'
+              - 'tests/test_quality.py'
+            research:
+              - 'src/research.py'
+              - 'tests/test_research.py'
+            visualization:
+              - 'src/visualization.py'
+              - 'tests/test_visualization.py'
+
+  # ==========================================
+  # 2. CI: Тестування модулів (Матриця)
+  # ==========================================
+  test-modules:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # Якщо впаде один модуль, інші продовжать роботу
+      matrix:
+        module: [loader, quality, research, visualization]
+
+    # РОЗУМНИЙ ЗАПУСК (if):
+    # - Якщо це ручний запуск (і обрано цей модуль або 'all')
+    # - АБО якщо це push в main (запускаємо всі тести для перевірки)
+    # - АБО якщо це Pull Request і файли цього модуля реально змінились
+    if: >-
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.module == 'all' || github.event.inputs.module == matrix.module)) ||
+      (github.event_name == 'push') ||
+      (github.event_name == 'pull_request' && needs.detect-changes.outputs[matrix.module] == 'true')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Pytest for ${{ matrix.module }}
+        run: |
+          mkdir -p artifacts/${{ matrix.module }}
+          echo "Running tests for ${{ matrix.module }}..."
+          # Запускаємо тест конкретного модуля і зберігаємо вивід у лог
+          pytest tests/test_${{ matrix.module }}.py -v > artifacts/${{ matrix.module }}/test_run.log 2>&1
+
+      - name: Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        if: always() # Завантажуємо логи навіть якщо тести впали
+        with:
+          name: logs-${{ matrix.module }}
+          path: artifacts/${{ matrix.module }}
+
+  # ==========================================
+  # 3. CD: Публікація результатів на GitHub Pages
+  # ==========================================
+  deploy-pages:
+    needs: test-modules
+    # Виконуємо CD ТІЛЬКИ якщо тести пройшли успішно і це гілка main (не PR)
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    
+    # Необхідні дозволи для GitHub Pages
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Full Pipeline to Generate Figures
+        # Цей крок реально завантажить датасет і згенерує графіки
+        run: python -m src.main
+
+      - name: Generate HTML Report
+        # Створюємо просту HTML сторінку для відображення графіків
+        run: |
+          mkdir -p public
+          cp -r reports/figures/* public/
+          
+          echo "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Open Data AI Analytics</title>" > public/index.html
+          echo "<style>body{font-family:sans-serif; text-align:center; background:#f4f4f9;} img{max-width:80%; box-shadow:0 4px 8px rgba(0,0,0,0.1); margin-bottom:40px; border-radius:8px;}</style></head><body>" >> public/index.html
+          echo "<h1>Звіт: Аналітика Міжнародної Технічної Допомоги</h1>" >> public/index.html
+          
+          for file in public/*.png; do
+            filename=$(basename "$file")
+            echo "<h3>$filename</h3><img src='$filename'><br>" >> public/index.html
+          done
+          
+          echo "</body></html>" >> public/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
