@@ -1,5 +1,5 @@
 from unittest.mock import patch, MagicMock
-from src.loader import download_data
+from src.loader.loader import download_data
 
 
 @patch('src.loader.requests.get')

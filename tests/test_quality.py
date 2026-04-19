@@ -1,4 +1,4 @@
-from src.quality import analyze_quality
+from src.quality.quality import analyze_quality
 
 
 def test_analyze_quality(dummy_data_path, capsys):

@@ -45,16 +45,16 @@ jobs:
         with:
           filters: |
             loader:
-              - 'src/loader.py'
+              - 'src/loader/loader.py'
               - 'tests/test_loader.py'
             quality:
-              - 'src/quality.py'
+              - 'src/quality/quality.py'
               - 'tests/test_quality.py'
             research:
-              - 'src/research.py'
+              - 'src/research/research.py'
               - 'tests/test_research.py'
             visualization:
-              - 'src/visualization.py'
+              - 'src/visualization/visualization.py'
               - 'tests/test_visualization.py'
 
   # ==========================================

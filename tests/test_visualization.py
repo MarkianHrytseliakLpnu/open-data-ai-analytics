@@ -1,4 +1,4 @@
-from src.visualization import create_visuals
+from src.visualization.visualization import create_visuals
 from unittest.mock import patch
 
 
