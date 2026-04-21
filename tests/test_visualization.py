@@ -2,7 +2,7 @@ from src.visualization.visualization import create_visuals
 from unittest.mock import patch
 
 
-@patch('src.visualization.config')
+@patch('src.visualization.visualization.config')
 def test_create_visuals(mock_config, dummy_data_path, tmp_path):
     # Підміняємо шлях збереження графіків на тимчасову папку
     mock_config.FIGURES_DIR = tmp_path

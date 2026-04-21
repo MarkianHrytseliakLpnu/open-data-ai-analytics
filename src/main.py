@@ -1,8 +1,8 @@
 from src import config
-from loader import loader
-from quality import quality
-from research import research
-from visualization import visualization  # <--- Додаємо імпорт visualization
+from src.loader import loader
+from src.quality import quality
+from src.research import research
+from src.visualization import visualization  # <--- Додаємо імпорт visualization
 
 
 def main():

@@ -8,7 +8,7 @@ from src.main import main
 def test_main_pipeline(mock_download, mock_viz_config, mock_main_config, dummy_data_path, tmp_path):
     # Встановлюємо шляхи конфігурації на наші тестові папки
     mock_main_config.RAW_DATA_FILE_PATH = dummy_data_path
-    mock_main_config.DATASET_URL = "http://fake.url"
+    mock_main_config.DATASET_URL = "https://fake.url"
     mock_viz_config.FIGURES_DIR = tmp_path
 
     # Запускаємо головний пайплайн

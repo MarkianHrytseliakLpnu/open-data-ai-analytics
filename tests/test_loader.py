@@ -2,7 +2,7 @@ from unittest.mock import patch, MagicMock
 from src.loader.loader import download_data
 
 
-@patch('src.loader.requests.get')
+@patch('src.loader.loader.requests.get')
 def test_download_data(mock_get, tmp_path):
     # Імітуємо успішну відповідь від сервера
     mock_response = MagicMock()
@@ -14,7 +14,7 @@ def test_download_data(mock_get, tmp_path):
     save_path = tmp_path / "downloaded.csv"
 
     # Викликаємо функцію
-    download_data("http://fake-url.com/data.csv", save_path)
+    download_data("https://fake-url.com/data.csv", save_path)
 
     # Перевіряємо результати
     assert save_path.exists()
