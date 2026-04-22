@@ -9,6 +9,8 @@ DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed" # На майбутнє
 FIGURES_DIR = PROJECT_ROOT / "reports" / "figures"
+QUALITY_REPORTS_DIR = PROJECT_ROOT / "reports" / "quality"
+RESEARCH_REPORTS_DIR = PROJECT_ROOT / "reports" / "research"
 
 # Створюємо папки, якщо їх немає (безпечна перевірка)
 RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -21,3 +23,13 @@ DATASET_FILENAME = "assets.csv"
 
 # Повний шлях до файлу, куди ми збережемо дані
 RAW_DATA_FILE_PATH = RAW_DATA_DIR / DATASET_FILENAME
+
+# Налаштування підключення до PostgreSQL
+# Формат: postgresql://користувач:пароль@хост:порт/назва_бази
+DB_USER = "postgres"
+DB_PASSWORD = "RMSprop1488" # Змініть на свій!
+DB_HOST = "localhost"
+DB_PORT = "5432"
+DB_NAME = "assets_db"
+
+DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"

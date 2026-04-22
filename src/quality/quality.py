@@ -1,6 +1,9 @@
 import pandas as pd
 import logging
+import json
 from pathlib import Path
+from src import config
+
 
 # Налаштування логера
 logger = logging.getLogger(__name__)
@@ -8,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def analyze_quality(file_path: Path) -> None:
     """
-    Проводить аналіз якості даних (EDA) та виводить звіт у консоль.
+    Проводить аналіз якості даних (EDA) та формує JSON-звіт.
 
     Args:
         file_path (Path): Шлях до csv файлу з даними.
@@ -21,65 +24,55 @@ def analyze_quality(file_path: Path) -> None:
         logger.error(f"File not found: {file_path}")
         return
 
-    print("\n" + "=" * 40)
-    print("DATA QUALITY REPORT")
-    print("=" * 40)
+    # Ініціалізація структури звіту
+    report = {
+        "dataset_shape": {"rows": df.shape[0], "columns": df.shape[1]},
+        "missing_values": {},
+        "duplicates": {},
+        "data_types_and_correctness": {}
+    }
 
-    # 1. Загальна інформація
-    print(f"\n[1] SHAPE: {df.shape[0]} rows, {df.shape[1]} columns")
-
-    print("\n[2] DATA TYPES & INFO:")
-    print(df.info())
-
-    # 2. Перевірка на дублікати
-    duplicates = df.duplicated().sum()
-    print(f"\n[3] DUPLICATES: {duplicates} ({(duplicates / len(df)) * 100:.2f}%)")
-
-    # 3. Аналіз пропущених значень
-    print("\n[4] MISSING VALUES:")
+    # 1. Визначення кількості пропусків
     missing = df.isnull().sum()
     missing = missing[missing > 0]
-    if missing.empty:
-        print("No missing values found.")
-    else:
-        print(missing)
-        print("\nMissing values percentage:")
-        print((missing / len(df)) * 100)
+    report["missing_values"]["count"] = missing.to_dict()
+    report["missing_values"]["percentage"] = ((missing / len(df)) * 100).round(2).to_dict()
 
-    # 4. Унікальні значення (Cardinality)
-    print("\n[5] UNIQUE VALUES (Cardinality):")
+    # 2. Перевірка на дублікати
+    duplicates = int(df.duplicated().sum())
+    report["duplicates"]["count"] = duplicates
+    report["duplicates"]["percentage"] = round((duplicates / len(df)) * 100, 2)
+
+    # 3. Перевірка типів та коректності значень
+    type_info = {}
+    correctness_issues = {}
+
     for col in df.columns:
-        print(f"{col}: {df[col].nunique()} unique values")
+        col_type = str(df[col].dtype)
+        type_info[col] = col_type
 
-    # 5. Спроба конвертації числових колонок для статистики
-    # (Ми знаємо, що amountValue та quantity часто зчитуються як об'єкти)
-    print("\n[6] NUMERIC STATISTICS & OUTLIERS (Potential):")
+        # Перевірка коректності: якщо колонка має бути числовою, але містить текст/пробіли
+        if col_type == 'object' and col in ['amountValue', 'quantity']:
+            # Шукаємо значення, які містять літери, коми або пробіли
+            non_numeric = df[col].astype(str).str.contains(r'[^\d.]', na=False)
+            issues_count = int(non_numeric.sum())
+            if issues_count > 0:
+                correctness_issues[
+                    col] = f"Found {issues_count} values with invalid format (e.g. spaces, commas, letters)"
 
-    numeric_candidates = ['amountValue', 'quantity']
+    report["data_types_and_correctness"]["types"] = type_info
+    report["data_types_and_correctness"]["potential_issues"] = correctness_issues
 
-    for col in numeric_candidates:
-        if col in df.columns:
-            # Спробуємо тимчасово конвертувати в числа, ігноруючи помилки, щоб оцінити розподіл
-            numeric_series = pd.to_numeric(df[col], errors='coerce')
-            valid_count = numeric_series.count()
+    # 4. Формування звіту (Збереження у JSON)
+    report_dir = config.QUALITY_REPORTS_DIR
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / "quality_report.json"
 
-            print(f"\n--- Analysis for '{col}' ---")
-            print(f"Valid numeric values: {valid_count} / {len(df)}")
+    with open(report_path, 'w', encoding='utf-8') as f:
+        json.dump(report, f, indent=4, ensure_ascii=False)
 
-            if valid_count > 0:
-                print(numeric_series.describe())
+    logger.info(f"Data Quality Analysis finished. Report saved to {report_path}")
 
-                # Пошук аутлаєрів (IQR Method)
-                Q1 = numeric_series.quantile(0.25)
-                Q3 = numeric_series.quantile(0.75)
-                IQR = Q3 - Q1
-                lower_bound = Q1 - 1.5 * IQR
-                upper_bound = Q3 + 1.5 * IQR
-
-                outliers = numeric_series[(numeric_series < lower_bound) | (numeric_series > upper_bound)]
-                print(f"Outliers count (IQR method): {len(outliers)}")
-                if len(outliers) > 0:
-                    print(f"Top 5 outliers: {outliers.nlargest(5).values}")
-
-    print("\n" + "=" * 40)
-    logger.info("Data Quality Analysis finished.")
+    # Виводимо прев'ю у консоль
+    print("\n--- DATA QUALITY REPORT ---")
+    print(json.dumps(report, indent=4, ensure_ascii=False))
