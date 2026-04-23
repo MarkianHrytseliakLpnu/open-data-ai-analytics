@@ -1,0 +1,59 @@
+{
+    "basic_statistics": {
+        "amountValue": {
+            "count": 3.0,
+            "mean": 150.17,
+            "std": 49.75,
+            "min": 100.5,
+            "25%": 125.25,
+            "50%": 150.0,
+            "75%": 175.0,
+            "max": 200.0,
+            "median": 150.0,
+            "outliers_count": 0
+        },
+        "quantity": {
+            "count": 3.0,
+            "mean": 2.67,
+            "std": 2.08,
+            "min": 1.0,
+            "25%": 1.5,
+            "50%": 2.0,
+            "75%": 3.5,
+            "max": 5.0,
+            "median": 2.0,
+            "outliers_count": 0
+        }
+    },
+    "categorical_distribution": {
+        "projectTitle": {
+            "Проєкт А": 50.0,
+            "Проєкт Б": 25.0,
+            "Проєкт В": 25.0
+        },
+        "implementerName": {
+            "Виконавець 1": 50.0,
+            "Виконавець 2": 25.0,
+            "Виконавець 3": 25.0
+        },
+        "recipientName": {
+            "Отримувач X": 50.0,
+            "Отримувач Y": 25.0,
+            "Отримувач Z": 25.0
+        },
+        "amountCurrency": {
+            "UAH": 75.0,
+            "USD": 25.0
+        }
+    },
+    "correlations": {
+        "amount_vs_quantity": 0.9616
+    },
+    "key_insights": {
+        "top_3_projects_by_amount_UAH": {
+            "Проєкт Б": 200.0,
+            "Проєкт В": 150.0,
+            "Проєкт А": 100.5
+        }
+    }
+}

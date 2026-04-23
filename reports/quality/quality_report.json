@@ -1,0 +1,32 @@
+{
+    "dataset_shape": {
+        "rows": 4,
+        "columns": 13
+    },
+    "missing_values": {
+        "count": {},
+        "percentage": {}
+    },
+    "duplicates": {
+        "count": 0,
+        "percentage": 0.0
+    },
+    "data_types_and_correctness": {
+        "types": {
+            "uid": "int64",
+            "name": "str",
+            "description": "str",
+            "quantity": "str",
+            "unitName": "str",
+            "amountValue": "str",
+            "amountCurrency": "str",
+            "projectId": "str",
+            "projectTitle": "str",
+            "recipientId": "int64",
+            "recipientName": "str",
+            "implementerName": "str",
+            "actDate": "str"
+        },
+        "potential_issues": {}
+    }
+}
