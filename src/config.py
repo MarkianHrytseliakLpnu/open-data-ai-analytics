@@ -28,7 +28,9 @@ RAW_DATA_FILE_PATH = RAW_DATA_DIR / DATASET_FILENAME
 # Формат: postgresql://користувач:пароль@хост:порт/назва_бази
 DB_USER = "postgres"
 DB_PASSWORD = "RMSprop1488" # Змініть на свій!
-DB_HOST = "localhost"
+# Замість DB_HOST = "localhost" зробіть так, щоб він брав змінну з системи,
+# або використовував localhost, якщо ви запускаєте його без Docker
+DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = "5432"
 DB_NAME = "assets_db"
 

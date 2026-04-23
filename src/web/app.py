@@ -129,7 +129,7 @@ def main():
 
                 img_path = FIGURES_DIR / selected_image
                 img = Image.open(img_path)
-                st.image(img, caption=selected_image, width=1000)
+                st.image(img, caption=selected_image, width=800)
             else:
                 st.warning("Графіків ще немає в папці.")
         else:

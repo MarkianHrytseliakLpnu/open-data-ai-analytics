@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # 1. СУБД (База даних)
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: RMSprop1488   # ВАЖЛИВО: Має збігатися з вашим config.py!
+      POSTGRES_DB: assets_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - analytics_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d assets_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Веб-інтерфейс для управління базою даних
+  pgAdmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"
+    networks:
+      - analytics_net
+    depends_on:
+      - db
+
+  # 3. Модуль Завантаження (Працює тільки після того, як БД "здорова")
+  loader:
+    build:
+      context: .
+      dockerfile: docker/loader/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - shared_data:/app/data
+    networks:
+      - analytics_net
+    environment:
+      - DB_HOST=db
+      - DB_PASSWORD=RMSprop1488
+
+  # 4. Модуль Якості (Чекає, поки loader успішно завершиться)
+  quality:
+    build:
+      context: .
+      dockerfile: docker/quality/Dockerfile
+    depends_on:
+      loader:
+        condition: service_completed_successfully
+    volumes:
+      - shared_data:/app/data
+      - shared_reports:/app/reports
+    networks:
+      - analytics_net
+
+  # 5. Модуль Дослідження (Паралельно з Якістю)
+  research:
+    build:
+      context: .
+      dockerfile: docker/research/Dockerfile
+    depends_on:
+      loader:
+        condition: service_completed_successfully
+    volumes:
+      - shared_data:/app/data
+      - shared_reports:/app/reports
+    networks:
+      - analytics_net
+
+  # 6. Модуль Візуалізації (Паралельно)
+  visualization:
+    build:
+      context: .
+      dockerfile: docker/visualization/Dockerfile
+    depends_on:
+      loader:
+        condition: service_completed_successfully
+    volumes:
+      - shared_data:/app/data
+      - shared_reports:/app/reports
+    networks:
+      - analytics_net
+
+  # 7. Веб-інтерфейс (Працює постійно)
+  web:
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      - shared_data:/app/data
+      - shared_reports:/app/reports
+    networks:
+      - analytics_net
+
+# --- Налаштування спільних дисків та мереж ---
+volumes:
+  postgres_data:    # Диск для БД
+  shared_data:      # Диск для assets.csv (щоб всі модулі бачили один файл)
+  shared_reports:   # Диск для JSON та PNG звітів
+
+networks:
+  analytics_net:
+    driver: bridge
